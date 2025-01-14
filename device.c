@@ -475,7 +475,7 @@ static void diff_rx_pointers_e(PNE2000_ADAPTER Adapter, uint16_t *pMdra_rds, uin
 				*pMdra_rds >> 8, *pMdra_rds & 0xff,
 				mdra_rd >> 8, mdra_rd & 0xff,
 				diff >> 8, diff & 0xff,
-				fifoTurn_nRx, rwpa_wt>> 8, rwpa_wt);
+				fifoTurn_nRx, rwpa_wt>> 8, rwpa_wt & 0xff);
 			fifoTurn_nRx = 0;
 	#if 1 //[temp store]
 			fifoPkt_num = MONITOR_RXPOINTER_PACKET_NUM + MONITOR_RXPOINTER_PACKET_NUM;
@@ -494,7 +494,7 @@ static void diff_rx_pointers_e(PNE2000_ADAPTER Adapter, uint16_t *pMdra_rds, uin
 				mdra_rd >> 8, mdra_rd & 0xff,
 				diff >> 8, diff & 0xff,
 				df >> 8, df & 0xff,
-				fifoTurn_nRx, rwpa_wt>> 8, rwpa_wt);
+				fifoTurn_nRx, rwpa_wt>> 8, rwpa_wt & 0xff);
 		}
 		dfmdra_rd = mdra_rd;
 		diffmdra_rd = mdra_rd;

@@ -174,6 +174,7 @@ typedef struct _NE2000_ADAPTER {
 	U32		m_szStatistics[TID_SIZE];
 #endif 
 	U8		m_up;
+	int		nNEQChkForHang;
 	U8		nEQChkForHang;
 	U16		now_mdra_rd;
 
