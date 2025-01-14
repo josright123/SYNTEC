@@ -510,33 +510,11 @@ static void diff_rx_pointers_e(PNE2000_ADAPTER Adapter, uint16_t *pMdra_rds, uin
 	#endif
 }
 
-#if 1
-uint16_t gkeep_mdra_rds;
-
-void diff_rx_s(PNE2000_ADAPTER Adapter)
-{
-	if (!fifoTurn_nRx) {
-		gkeep_mdra_rds = DeviceReadPort(Adapter, 0xf4);
-		gkeep_mdra_rds |= DeviceReadPort(Adapter, 0xf5) << 8;
-		diff_rx_pointers_s(Adapter, &gkeep_mdra_rds); //&mdra_rds
-	}
-}
-
-void diff_rx_e(PNE2000_ADAPTER Adapter)
-{
-	uint32_t mdra_rd_now;
-	fifoTurn_nRx++;
-		mdra_rd_now = DeviceReadPort(Adapter, 0xf4);
-		mdra_rd_now |= DeviceReadPort(Adapter, 0xf5) << 8;
-	diff_rx_pointers_e(Adapter, &gkeep_mdra_rds, mdra_rd_now); //&mdra_rds
-}
-#endif
-
 int PrintBLine(U8 *p, int tlen, int len) {
 	//int n = len;
 	if (len >= 16) {
-			NKDbgPrintfW(TEXT("[dm9] tlen %d, Each RxDat === %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\r\n"),
-				tlen, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], 
+			NKDbgPrintfW(TEXT("[dm9 pk %d] tlen %d, Each RxDat === %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\r\n"),
+				fifoTurn_nRx, tlen, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], 
 				p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 	} else {
 			int i, nfinal = len;
@@ -556,6 +534,39 @@ int PrintBLine(U8 *p, int tlen, int len) {
 	}
 	return len >= 16 ? 16 : len; //return n;
 }
+
+#if 1
+uint16_t gkeep_mdra_rds;
+
+void diff_rx_s(PNE2000_ADAPTER Adapter)
+{
+	if (!fifoTurn_nRx) {
+		gkeep_mdra_rds = DeviceReadPort(Adapter, 0xf4);
+		gkeep_mdra_rds |= DeviceReadPort(Adapter, 0xf5) << 8;
+		diff_rx_pointers_s(Adapter, &gkeep_mdra_rds); //&mdra_rds
+	}
+}
+
+void diff_rx_e(PNE2000_ADAPTER Adapter)
+{
+	uint32_t mdra_rd_now;
+	uint16_t rwpa_wt;
+	fifoTurn_nRx++;
+#if 1
+	PrintBLine(Adapter->szbuff, Adapter->nLen, 16);
+#endif
+		mdra_rd_now = DeviceReadPort(Adapter, 0xf4);
+		mdra_rd_now |= DeviceReadPort(Adapter, 0xf5) << 8;
+	diff_rx_pointers_e(Adapter, &gkeep_mdra_rds, mdra_rd_now); //&mdra_rds
+	
+		rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
+             (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
+	
+	NKDbgPrintfW(TEXT("([rx_e] mdrd %04x --- NET.rwpa_wt %02x%02x)\r\n"),
+		mdra_rd_now, 
+		rwpa_wt>> 8, rwpa_wt & 0xff);
+}
+#endif
 
 void Dm9LookupRxBuffers(PNE2000_ADAPTER Adapter)
 {
@@ -598,9 +609,6 @@ void Dm9LookupRxBuffers(PNE2000_ADAPTER Adapter)
 		Adapter->nLen = pdesc->nLength;
 		Adapter->headVal = value;
 		memcpy(Adapter->szbuff, (PU8)&szbuffer, Adapter->nLen); //memcpy
-#if 1
-	PrintBLine(Adapter->szbuff, Adapter->nLen, 16);
-#endif
 		
 //		diff_rx_s(Adapter); //.
 		diff_rx_e(Adapter);
