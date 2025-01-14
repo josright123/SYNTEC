@@ -532,6 +532,31 @@ void diff_rx_e(PNE2000_ADAPTER Adapter)
 }
 #endif
 
+int PrintBLine(U8 *p, int tlen, int len) {
+	//int n = len;
+	if (len >= 16) {
+			NKDbgPrintfW(TEXT("[dm9] tlen %d, Each RxDat === %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\r\n"),
+				tlen, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], 
+				p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+	} else {
+			int i, nfinal = len;
+			if (len > 8) {
+				NKDbgPrintfW(TEXT("[dm9] Each RxDat === %02x %02x %02x %02x %02x %02x %02x %02x \r\n"),
+					p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+				nfinal -= 8;
+				p += 8;
+				//[.]
+			}
+			//[.]
+			NKDbgPrintfW(TEXT("[dm9] Each RxDat ===\r\n"));
+			for (i = 0; i< nfinal; i++) {
+				NKDbgPrintfW(TEXT("+%02x\r\n"),p[i]);
+			}
+			NKDbgPrintfW(TEXT("\r\n"));
+	}
+	return len >= 16 ? 16 : len; //return n;
+}
+
 void Dm9LookupRxBuffers(PNE2000_ADAPTER Adapter)
 {
 	U32		desc;
@@ -573,7 +598,10 @@ void Dm9LookupRxBuffers(PNE2000_ADAPTER Adapter)
 		Adapter->nLen = pdesc->nLength;
 		Adapter->headVal = value;
 		memcpy(Adapter->szbuff, (PU8)&szbuffer, Adapter->nLen); //memcpy
-
+#if 1
+	PrintBLine(Adapter->szbuff, Adapter->nLen, 16);
+#endif
+		
 //		diff_rx_s(Adapter); //.
 		diff_rx_e(Adapter);
 

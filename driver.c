@@ -485,9 +485,9 @@ int PrintALine(U8 *p, int len) {
 				//[.]
 			}
 			//[.]
-			NKDbgPrintfW(TEXT("[dm9] Last RxDat ==="));
+			NKDbgPrintfW(TEXT("[dm9] Last RxDat ===\r\n"));
 			for (i = 0; i< nfinal; i++) {
-				NKDbgPrintfW(TEXT("+%02x"),p[i]);
+				NKDbgPrintfW(TEXT("+%02x\r\n"),p[i]);
 			}
 			NKDbgPrintfW(TEXT("\r\n"));
 	}
@@ -521,7 +521,7 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 		mdra_rd_now = DeviceReadPort(Adapter, 0xf4);
 		mdra_rd_now |= DeviceReadPort(Adapter, 0xf5) << 8;
 	
-  rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
+		rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
              (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
              
              nsr = DeviceReadPort(Adapter, 0x01);
@@ -533,24 +533,26 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 	
 	if (Adapter->now_mdra_rd == mdra_rd_now) {
 		Adapter->nEQChkForHang++; // ...	
-		if (Adapter->nEQChkForHang >= 10)
+		if (Adapter->nEQChkForHang >= 10) //Init 10, To be larger such as 60 for suit the test and task requirement!!
 		{
 			U8 szbuf[10];
 			/* ReadMem Current RxMem */
 			DeviceReadString(Adapter, (PU8)&szbuf, 8);
+             
+		nsr = DeviceReadPort(Adapter, 0x01);
 			
 			/* Peek Pointers Print */
 		mdra_rd_now = DeviceReadPort(Adapter, 0xf4);
 		mdra_rd_now |= DeviceReadPort(Adapter, 0xf5) << 8;
 	
 		rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
-					(uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
+			  (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
 		
-			NKDbgPrintfW(TEXT("=== [dm9] HAS.READ.8BYTE mdrd %04x] === NET.rwpa_wt %02x%02x\r\n"), mdra_rd_now,
-				rwpa_wt>> 8, rwpa_wt & 0xff);
+			NKDbgPrintfW(TEXT("=== [dm9] HAS.EQU.WHEN.%u times.HANG mdrd %04x] === NET.rwpa_wt %02x%02x (nsr %02x)\r\n"), Adapter->nEQChkForHang, mdra_rd_now,
+				rwpa_wt>> 8, rwpa_wt & 0xff, nsr);
 
 			/* print Prev Packet */
-			NKDbgPrintfW(TEXT("[dm9] Last RxMem === Packet len %d\r\n"), Adapter->nLen);
+			NKDbgPrintfW(TEXT("[dm9] HAS.EQU.%u times.Last RxMem === Packet len %d\r\n"), Adapter->nEQChkForHang, Adapter->nLen);
 			p = (U8 *) &Adapter->headVal;
 			NKDbgPrintfW(TEXT("[dm9] Last RxHead === %02x %02x %02x %02x\r\n"),
 				p[0], p[1], p[2], p[3]);
@@ -568,11 +570,6 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 			/* print Current RxMem */
 			NKDbgPrintfW(TEXT("[dm9] NEXT RxMem === %02x %02x %02x %02x %02x %02x %02x %02x\r\n"),
 				szbuf[0], szbuf[1], szbuf[2], szbuf[3], szbuf[4], szbuf[5], szbuf[6], szbuf[7]);
-
-			/* ---- */
-			/* Done */
-			/* ---- */
-			Adapter->nEQChkForHang = 0;
 			
 			/* --------- */
 			/* ncr reset */
@@ -586,8 +583,13 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 		rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
 					(uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
 		
-			NKDbgPrintfW(TEXT("=== [dm9] 8BYTE.DONE.RESTART: mdrd %04x] === NET.rwpa_wt %02x%02x\r\n"), mdra_rd_now,
+			NKDbgPrintfW(TEXT("=== [dm9] WHEN.%u times.DONE.RESTART: mdrd %04x] === NET.rwpa_wt %02x%02x\r\n"), Adapter->nEQChkForHang, mdra_rd_now,
 				rwpa_wt>> 8, rwpa_wt & 0xff);
+
+			/* ---- */
+			/* Done */
+			/* ---- */
+			Adapter->nEQChkForHang = 0;
 		return FALSE ;
 		}
 	} else {
@@ -596,10 +598,9 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 		
 		Adapter->nNEQChkForHang++;
 		if (Adapter->nNEQChkForHang > 50) {
-			Adapter->nNEQChkForHang = 0;
 			
 			/* print Prev Packet */
-			NKDbgPrintfW(TEXT("[dm9] Last RxMem === Packet len %d\r\n"), Adapter->nLen);
+			NKDbgPrintfW(TEXT("[dm9] SUCCEED.READ.WHEN.%u times.Last RxMem === Packet len %d\r\n"), Adapter->nNEQChkForHang, Adapter->nLen);
 			p = (U8 *) &Adapter->headVal;
 			NKDbgPrintfW(TEXT("[dm9] Last RxHead === %02x %02x %02x %02x\r\n"),
 				p[0], p[1], p[2], p[3]);
@@ -613,6 +614,7 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 				else 
 					len = 0;
 			}
+			Adapter->nNEQChkForHang = 0;
 		}
 	}
 
