@@ -501,7 +501,7 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 	int len;
 	uint16_t rwpa_wt;
     U32 dat, val;
-	U32 mdra_rd_now;
+	U32 nsr, mdra_rd_now;
 	U8 sz[6];
 	BOOLEAN toup,todown;
     PNE2000_ADAPTER Adapter = (PNE2000_ADAPTER)MiniportAdapterContext;
@@ -523,10 +523,13 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 	
   rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
              (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
+             
+             nsr = DeviceReadPort(Adapter, 0x01);
 
-	NKDbgPrintfW(TEXT("=== [dm9] s.w.lee: Chip signature is %08X mdrd %04x] === NET.rwpa_wt %02x%02x\r\n"),
+	NKDbgPrintfW(TEXT("=== [dm9] s.w.lee: Chip signature is %08X mdrd %04x] === NET.rwpa_wt %02x%02x (nsr %02x)\r\n"),
 		val, mdra_rd_now, 
-		rwpa_wt>> 8, rwpa_wt & 0xff);
+		rwpa_wt>> 8, rwpa_wt & 0xff,
+		nsr);
 	
 	if (Adapter->now_mdra_rd == mdra_rd_now) {
 		Adapter->nEQChkForHang++; // ...	
