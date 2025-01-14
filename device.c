@@ -1,6 +1,9 @@
 
 #include "precomp.h"
 
+int PrintALine(U8 *p, int len);
+int PrintBLine(U8 *p, int tlen, int len);
+
 void EDeviceInitialize(PNE2000_ADAPTER Adapter)
 {
 	U32		val;
@@ -248,6 +251,7 @@ void DeviceOnSetupFilter_1(PNE2000_ADAPTER Adapter, U32 uFilter)
 	
 	// if promiscuous mode<1> is requested,
 	// just set this bit and return
+	newmode &= ~0x10; //Debug.20250114.jj
 	if( (uFilter & NDIS_PACKET_TYPE_PROMISCUOUS) )
 	{
 		// add promiscuous<1>
@@ -575,7 +579,7 @@ void Dm9LookupRxBuffers(PNE2000_ADAPTER Adapter)
 	U32		value;
 	U8 szbuffer[DRIVER_BUFFER_SIZE];  //= 1520
 	int		counts=0;
-	int		errors=0;
+	static int errors=0, crc_err= 0;
 
 	diff_rx_s(Adapter);
 
@@ -622,6 +626,27 @@ void Dm9LookupRxBuffers(PNE2000_ADAPTER Adapter)
 		if(pdesc->bStatus & MAKE_MASK4(3,2,1,0))
 		{
 			errors++;
+  /* print CRC error Packet */
+  if (pdesc->bStatus & 0x02) { //Debug.20250114.jj	  
+	U8 *p;
+	int len;
+	crc_err++;
+	NKDbgPrintfW(TEXT("[dm9] HAS.CRC.ERROR, TOTAL error %d crc_err %d, This RxMem === Packet len %d\r\n"), errors, crc_err, Adapter->nLen);
+	p = (U8 *) &Adapter->headVal;
+	NKDbgPrintfW(TEXT("[dm9] This RxHead === %02x %02x %02x %02x\r\n"),
+		p[0], p[1], p[2], p[3]);
+	  
+	p = (U8 *) &Adapter->szbuff;
+	len = Adapter->nLen;
+	while (len) {
+		p += PrintALine(p, len);
+		if (len > 16)
+			len -= 16;
+		else 
+			len = 0;
+	}
+	NKDbgPrintfW(TEXT("[dm9] This CRC continue (OR Reset...)\r\n"));
+  }
 			continue;
 		} // of error happens
 
