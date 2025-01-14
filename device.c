@@ -562,7 +562,7 @@ void diff_rx_e(PNE2000_ADAPTER Adapter)
 		rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
              (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
 	
-	NKDbgPrintfW(TEXT("([rx_e] mdrd %04x --- NET.rwpa_wt %02x%02x)\r\n"),
+	NKDbgPrintfW(TEXT("( [rx_e] mdrd %04x --- NET.rwpa_wt %02x%02x )\r\n"),
 		mdra_rd_now, 
 		rwpa_wt>> 8, rwpa_wt & 0xff);
 }
