@@ -221,6 +221,7 @@ Return Value:
 		// dbg
 		Adapter->txw= Adapter->txwno= 0;
 		Adapter->tpb= Adapter->tpbno= Adapter->rp= Adapter->rpno= 0;
+		Adapter->nEQChkForHang = Adapter->now_mdra_rd = 0;
 
 //	} while (FALSE);
 	} while (iCont);
@@ -460,6 +461,34 @@ NDIS_STATUS DriverEntry(
 
 }
 
+typedef U16 uint16_t;
+typedef U32 uint32_t;
+
+int PrintALine(U8 *p, int len) {
+	//int n = len;
+	if (len > 16) {
+			NKDbgPrintfW(TEXT("[dm9] Last RxDat === %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\r\n"),
+				p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], 
+				p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+	} else {
+			int i, nfinal = len;
+			if (len > 8) {
+				NKDbgPrintfW(TEXT("[dm9] Last RxDat === %02x %02x %02x %02x %02x %02x %02x %02x \r\n"),
+					p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+				nfinal -= 8;
+				p += 8;
+				//[.]
+			}
+			//[.]
+			NKDbgPrintfW(TEXT("[dm9] Last RxDat ==="));
+			for (i = 0; i< nfinal; i++) {
+				NKDbgPrintfW(TEXT("+%02x"),p[i]);
+			}
+			NKDbgPrintfW(TEXT("\r\n"));
+	}
+	return len > 16 ? 16 : len; //return n;
+}
+
 BOOLEAN	
 MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 {
@@ -481,15 +510,82 @@ MiniportCheckForHang(IN NDIS_HANDLE  MiniportAdapterContext)
 	val |= DeviceReadPort(Adapter, 0x2b)<<8;
 	val |= DeviceReadPort(Adapter, 0x28)<<16;			
 	val |= DeviceReadPort(Adapter, 0x29)<<24;
-	
-  rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
-             (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
              
 		mdra_rd_now = DeviceReadPort(Adapter, 0xf4);
 		mdra_rd_now |= DeviceReadPort(Adapter, 0xf5) << 8;
+	
+  rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
+             (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
 
-	NKDbgPrintfW(TEXT("=== [dm9] s.w.lee: Chip signature is %08X mdrd %04x] === rwpa_wt %02x%02x\r\n"), val, mdra_rd_now, 
-		rwpa_wt>> 8, rwpa_wt);			
+	NKDbgPrintfW(TEXT("=== [dm9] s.w.lee: Chip signature is %08X mdrd %04x] === NET.rwpa_wt %02x%02x\r\n"), val, mdra_rd_now, 
+		rwpa_wt>> 8, rwpa_wt);
+	
+	if (Adapter->now_mdra_rd == mdra_rd_now) {
+		Adapter->nEQChkForHang++; // ...	
+		if (Adapter->nEQChkForHang >= 10)
+		{
+			U8 szbuf[10];
+			U8 *p;
+			int len;
+			/* ReadMem Current RxMem */
+			DeviceReadString(Adapter, (PU8)&szbuf, 8);
+			
+			/* Peek Pointers Print */
+		mdra_rd_now = DeviceReadPort(Adapter, 0xf4);
+		mdra_rd_now |= DeviceReadPort(Adapter, 0xf5) << 8;
+	
+		rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
+					(uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
+		
+			NKDbgPrintfW(TEXT("=== [dm9] HAS.READ.8BYTE mdrd %04x] === NET.rwpa_wt %02x%02x\r\n"), mdra_rd_now,
+				rwpa_wt>> 8, rwpa_wt);
+
+			/* print Prev Packet */
+			NKDbgPrintfW(TEXT("[dm9] Last RxMem === Packet len %d\r\n"), Adapter->nLen);
+
+			p = &Adapter->headVal;
+			NKDbgPrintfW(TEXT("[dm9] Last RxHead === %02x %02x %02x %02x\r\n"),
+				p[0], p[1], p[2], p[3]);
+
+			p = &Adapter->szbuff;
+			len = Adapter->nLen;
+			while (len) {
+				p += PrintALine(p, len);
+				if (len > 16)
+					len -= 16;
+				else 
+					len = 0;
+			}
+
+			/* print Current RxMem */
+			NKDbgPrintfW(TEXT("[dm9] Current RxMem === %02x %02x %02x %02x %02x %02x %02x %02x\r\n"),
+				szbuf[0], szbuf[1], szbuf[2], szbuf[3], szbuf[4], szbuf[5], szbuf[6], szbuf[7]);
+
+			/* ---- */
+			/* Done */
+			/* ---- */
+			Adapter->nEQChkForHang = 0;
+			
+			/* --------- */
+			/* ncr reset */
+			/* --------- */
+			EDeviceInitialize(Adapter)
+			DeviceStart(Adapter);
+			
+		mdra_rd_now = DeviceReadPort(Adapter, 0xf4);
+		mdra_rd_now |= DeviceReadPort(Adapter, 0xf5) << 8;
+	
+		rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
+					(uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
+		
+			NKDbgPrintfW(TEXT("=== [dm9] 8BYTE.DONE.RESTART: mdrd %04x] === NET.rwpa_wt %02x%02x\r\n"), mdra_rd_now,
+				rwpa_wt>> 8, rwpa_wt);
+		return FALSE ;
+		}
+	} else {
+		Adapter->now_mdra_rd = mdra_rd_now;
+		Adapter->nEQChkForHang = 0; // ...	
+	}
 
 	//if (Adapter->rp == 1)
 	//	diff_rx_s(Adapter); //.

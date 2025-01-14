@@ -438,7 +438,7 @@ void dm9051_read_rx_pointers(PNE2000_ADAPTER Adapter, uint16_t *rwpa_wt, uint16_
 
 static uint16_t DM_ETH_ToCalc_rx_pointers(PNE2000_ADAPTER Adapter, int state, const uint16_t *mdra_rd_org, uint16_t *mdra_rd_now)
 {
-  uint16_t dummy_rwpa;
+//uint16_t dummy_rwpa;
 //  dm9051_read_rx_pointers(Adapter, &dummy_rwpa, mdra_rd_now);
   //debug_diff_rx_pointers(state, *mdra_rd_now);
   return (state == 0) ? 0 : wrpadiff(*mdra_rd_org, *mdra_rd_now);
@@ -470,7 +470,7 @@ static void diff_rx_pointers_e(PNE2000_ADAPTER Adapter, uint16_t *pMdra_rds, uin
   rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
              (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
              
-			NKDbgPrintfW(TEXT("[dbg_cycs %d.%d] mdra.s %02x%02x e %02x%02x dif %02x%02x (nrx %d) rwpa_wt %02x%02x\r\n"),
+			NKDbgPrintfW(TEXT("[dbg_cycs %d.%d] mdra.s %02x%02x e %02x%02x dif %02x%02x (nrx %d) NET.rwpa_wt %02x%02x\r\n"),
 				MONITOR_RXPOINTER_CYCLE_NUM, fifoCyc_num,
 				*pMdra_rds >> 8, *pMdra_rds & 0xff,
 				mdra_rd >> 8, mdra_rd & 0xff,
@@ -488,7 +488,7 @@ static void diff_rx_pointers_e(PNE2000_ADAPTER Adapter, uint16_t *pMdra_rds, uin
   rwpa_wt = (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAL) |
              (uint16_t)DeviceReadPort(Adapter, DM9051_RWPAH) << 8;
 			
-			NKDbgPrintfW(TEXT("[dbg_pkts %d.%d] mdra.s %02x%02x e %02x%02x dif %02x%02x (len %02x%02x nrx %d) rwpa_wt %02x%02x\r\n"),
+			NKDbgPrintfW(TEXT("[dbg_pkts %d.%d] mdra.s %02x%02x e %02x%02x dif %02x%02x (len %02x%02x nrx %d) NET.rwpa_wt %02x%02x\r\n"),
 				MONITOR_RXPOINTER_PACKET_NUM, fifoPkt_num,
 				*pMdra_rds >> 8, *pMdra_rds & 0xff,
 				mdra_rd >> 8, mdra_rd & 0xff,
@@ -567,6 +567,10 @@ void Dm9LookupRxBuffers(PNE2000_ADAPTER Adapter)
 		}
 
 		DeviceReadString(Adapter, (PU8)&szbuffer, pdesc->nLength);
+
+		Adapter->nLen = pdesc->nLength;
+		Adapter->headVal = value;
+		memcpy(Adapter->szbuff, (PU8)&szbuffer, Adapter->nLen); //memcpy
 
 //		diff_rx_s(Adapter); //.
 		diff_rx_e(Adapter);
