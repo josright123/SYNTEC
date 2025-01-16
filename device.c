@@ -70,6 +70,7 @@ void EDeviceInitialize(PNE2000_ADAPTER Adapter)
 	DeviceWritePort(Adapter, 0x39, DM9000_CAST_INT);  //INT pin control register
 	
 	DeviceWritePort(Adapter, 0x2f, DM9000_CAST_SMODE_LINKPULSEE4); // smcr_version
+//DM9_PBCR
 	DeviceWritePort(Adapter, 0x38, DM9000_CAST_BUS_DRIVE | DM9000_CAST_BUS_SPIKE); // pbcr_version
 	
 	
